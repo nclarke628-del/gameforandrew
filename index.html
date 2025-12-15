@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Retro Diamond</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { 
+      height: 100%; 
+      overflow: hidden;
+      background: #0a0a1a;
+      font-family: 'Press Start 2P', monospace;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    @keyframes flyOut {
+      0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--end-x), var(--end-y)) scale(0.3); opacity: 0; }
+    }
+    
+    @keyframes runnerPulse {
+      0%, 100% { box-shadow: 0 0 5px #ffcc00; }
+      50% { box-shadow: 0 0 20px #ffcc00, 0 0 30px #ff9900; }
+    }
+    
+    @keyframes scoreFlash {
+      0% { color: #fff; transform: scale(1); }
+      50% { color: #48bb78; transform: scale(1.3); }
+      100% { color: #fff; transform: scale(1); }
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes swingBat {
+      0% { transform: rotate(-50deg); }
+      40% { transform: rotate(60deg); }
+      100% { transform: rotate(60deg); }
+    }
+    
+    @keyframes batterReady {
+      0%, 100% { transform: rotate(-50deg); }
+      50% { transform: rotate(-45deg); }
+    }
+    
+    .game-container {
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      max-height: 800px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 100%);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    }
+    
+    .crt-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1),
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      z-index: 1000;
+    }
+    
+    .screen {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+    }
+    
+    .screen.active {
+      display: flex;
+    }
+    
+    .pixel-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 14px 28px;
+      background: linear-gradient(180deg, #5a6578 0%, #4a5568 100%);
+      color: #fff;
+      border: 4px solid #6a7588;
+      border-right-color: #2a3548;
+      border-bottom-color: #2a3548;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.1s;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    }
+    
+    .pixel-btn:active {
+      transform: translate(2px, 2px);
+      border-color: #2a3548;
+      border-right-color: #6a7588;
+      border-bottom-color: #6a7588;
+    }
+    
+    .pixel-btn-primary {
+      background: linear-gradient(180deg, #58cb88 0%, #48bb78 100%);
+      border-color: #68db98;
+      border-right-color: #276749;
+      border-bottom-color: #276749;
+    }
+    
+    .pixel-btn-danger {
+      background: linear-gradient(180deg, #f56565 0%, #e53e3e 100%);
+      border-color: #fc8181;
+      border-right-color: #9b2c2c;
+      border-bottom-color: #9b2c2c;
+    }
+    
+    /* Title Screen */
+    .title-screen {
+      background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a1a 100%);
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .title-baseball {
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #f0f0f0 30%, #ddd 70%, #ccc 100%);
+      border-radius: 50%;
+      margin-bottom: 30px;
+      position: relative;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5), inset -5px -5px 15px rgba(0,0,0,0.1);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .title-baseball::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-15deg);
+      width: 55px;
+      height: 70px;
+      border: 3px solid #cc0000;
+      border-radius: 50%;
+      border-left: none;
+      border-right: none;
+    }
+    
+    .title-logo { margin-bottom: 40px; }
+    
+    .title-logo h1 {
+      font-size: 28px;
+      color: #48bb78;
+      text-shadow: 4px 4px 0 #1a472a, 6px 6px 0 rgba(0,0,0,0.3);
+      margin-bottom: 5px;
+    }
+    
+    .title-logo h2 {
+      font-size: 32px;
+      color: #fff;
+      text-shadow: 4px 4px 0 #333, 6px 6px 0 rgba(0,0,0,0.3);
+    }
+    
+    .title-subtitle {
+      font-size: 8px;
+      color: #666;
+      margin-bottom: 30px;
+      line-height: 1.8;
+    }
+    
+    .blink { animation: blink 1s infinite; }
+    
+    /* Menu Screen */
+    .menu-screen {
+      padding: 20px;
+      background: linear-gradient(180deg, #1a1a2e 0%, #0f0f23 100%);
+    }
+    
+    .team-header {
+      text-align: center;
+      padding: 15px;
+      background: linear-gradient(180deg, #2a2a4e 0%, #1a1a2e 100%);
+      border: 3px solid #3a3a5e;
+      margin-bottom: 15px;
+    }
+    
+    .team-name {
+      font-size: 16px;
+      color: #48bb78;
+      text-shadow: 2px 2px 0 #1a472a;
+    }
+    
+    .record-box {
+      background: #0f0f23;
+      border: 4px solid #2a2a4e;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .record-title {
+      font-size: 10px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .record-stats {
+      display: flex;
+      justify-content: space-around;
+    }
+    
+    .record-stat { text-align: center; }
+    
+    .record-stat .value {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .record-stat .label {
+      font-size: 8px;
+      color: #666;
+    }
+    
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+    
+    .menu-buttons .pixel-btn { width: 100%; }
+    
+    .menu-tip {
+      font-size: 8px;
+      color: #444;
+      text-align: center;
+      margin-top: 20px;
+      line-height: 1.8;
+    }
+    
+    /* How to Play Screen */
+    .howto-screen {
+      padding: 15px;
+      background: #0f0f23;
+      overflow-y: auto;
+    }
+    
+    .howto-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid #333;
+    }
+    
+    .howto-title {
+      font-size: 14px;
+      color: #48bb78;
+    }
+    
+    .howto-section {
+      background: #1a1a2e;
+      border: 3px solid #2a2a4e;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .howto-section h3 {
+      font-size: 10px;
+      color: #ffcc00;
+      margin-bottom: 10px;
+    }
+    
+    .howto-section p {
+      font-size: 8px;
+      color: #aaa;
+      line-height: 1.8;
+    }
+    
+    .howto-zone {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    
+    .zone-demo {
+      width: 60px;
+      height: 80px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 4px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    
+    .zone-demo .sweet {
+      position: absolute;
+      top: 25%;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: rgba(72, 187, 120, 0.3);
+      border: 2px dashed #48bb78;
+    }
+    
+    .zone-labels {
+      font-size: 8px;
+      line-height: 2;
+    }
+    
+    .zone-labels .green { color: #48bb78; }
+    .zone-labels .yellow { color: #ffcc00; }
+    .zone-labels .red { color: #e53e3e; }
+    
+    /* Game Screen */
+    .game-screen { background: #0a0a1a; }
+    
+    .scoreboard {
+      background: linear-gradient(180deg, #1a1a2e 0%, #0f0f23 100%);
+      border-bottom: 4px solid #2a2a4e;
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .score-team {
+      text-align: center;
+      min-width: 80px;
+    }
+    
+    .score-team .name {
+      font-size: 8px;
+      margin-bottom: 5px;
+    }
+    
+    .score-team .runs {
+      font-size: 24px;
+      color: #fff;
+      text-shadow: 2px 2px 0 #000;
+    }
+    
+    .score-team.you .name { color: #48bb78; }
+    .score-team.opp .name { color: #e53e3e; }
+    
+    .score-inning { text-align: center; }
+    
+    .inning-number {
+      font-size: 14px;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+    
+    .inning-half {
+      font-size: 10px;
+      color: #888;
+    }
+    
+    .count-display {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      padding: 10px;
+      background: #0f0f23;
+      border-bottom: 2px solid #1a1a2e;
+    }
+    
+    .count-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .count-item .label {
+      font-size: 10px;
+      color: #666;
+    }
+    
+    .count-dots {
+      display: flex;
+      gap: 3px;
+    }
+    
+    .count-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #333;
+      transition: all 0.2s;
+    }
+    
+    .count-dot.active.ball { background: #48bb78; box-shadow: 0 0 8px #48bb78; }
+    .count-dot.active.strike { background: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
+    .count-dot.active.out { background: #e53e3e; box-shadow: 0 0 8px #e53e3e; }
+    
+    .field-area {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 280px;
+    }
+    
+    .field-grass {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 55%;
+      background: linear-gradient(180deg, #1a5c2e 0%, #0d3318 100%);
+    }
+    
+    .field-dirt {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 100px;
+      background: radial-gradient(ellipse at bottom, #8b6914 0%, transparent 70%);
+    }
+    
+    .diamond {
+      position: absolute;
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 140px;
+    }
+    
+    .diamond-outline {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 3px solid #a08050;
+      transform: rotate(45deg);
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    
+    .base {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      transform: rotate(45deg);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      transition: all 0.3s;
+    }
+    
+    .base.home { bottom: -9px; left: 50%; margin-left: -9px; }
+    .base.first { right: -9px; top: 50%; margin-top: -9px; }
+    .base.second { top: -9px; left: 50%; margin-left: -9px; }
+    .base.third { left: -9px; top: 50%; margin-top: -9px; }
+    
+    .base.occupied {
+      background: #ffcc00;
+      animation: runnerPulse 1s infinite;
+    }
+    
+    .strike-zone {
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 110px;
+      border: 4px solid rgba(255,255,255,0.25);
+      border-radius: 6px;
+      background: rgba(0,0,0,0.2);
+    }
+    
+    .sweet-spot {
+      position: absolute;
+      top: 28%;
+      left: 0;
+      right: 0;
+      height: 44%;
+      background: rgba(72, 187, 120, 0.15);
+      border: 2px dashed rgba(72, 187, 120, 0.5);
+    }
+    
+    .pitch-ball {
+      position: absolute;
+      left: 50%;
+      width: 22px;
+      height: 22px;
+      margin-left: -11px;
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #f0f0f0 40%, #ddd 100%);
+      border-radius: 50%;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 10;
+    }
+    
+    .pitch-ball.active { display: block; }
+    
+    /* BETTER BATTER */
+    .batter-container {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-left: -55px;
+      width: 60px;
+      height: 80px;
+    }
+    
+    .batter-shadow {
+      position: absolute;
+      bottom: 0;
+      left: 10px;
+      width: 40px;
+      height: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 50%;
+    }
+    
+    .batter-legs {
+      position: absolute;
+      bottom: 5px;
+      left: 15px;
+      width: 8px;
+      height: 25px;
+      background: #fff;
+      border-radius: 2px;
+    }
+    
+    .batter-legs::after {
+      content: '';
+      position: absolute;
+      left: 12px;
+      width: 8px;
+      height: 25px;
+      background: #fff;
+      border-radius: 2px;
+    }
+    
+    .batter-torso {
+      position: absolute;
+      bottom: 28px;
+      left: 12px;
+      width: 22px;
+      height: 28px;
+      background: linear-gradient(180deg, #48bb78 0%, #2f855a 100%);
+      border-radius: 4px 4px 0 0;
+    }
+    
+    .batter-number {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+    }
+    
+    .batter-head {
+      position: absolute;
+      bottom: 54px;
+      left: 14px;
+      width: 18px;
+      height: 18px;
+      background: #deb887;
+      border-radius: 50%;
+    }
+    
+    .batter-helmet {
+      position: absolute;
+      bottom: 58px;
+      left: 11px;
+      width: 24px;
+      height: 16px;
+      background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+      border-radius: 12px 12px 0 0;
+    }
+    
+    .batter-helmet-brim {
+      position: absolute;
+      bottom: 56px;
+      left: 6px;
+      width: 18px;
+      height: 6px;
+      background: #1a202c;
+      border-radius: 2px;
+    }
+    
+    .batter-arm-back {
+      position: absolute;
+      bottom: 42px;
+      left: 30px;
+      width: 8px;
+      height: 20px;
+      background: linear-gradient(180deg, #48bb78 0%, #2f855a 100%);
+      border-radius: 3px;
+      transform: rotate(-30deg);
+      transform-origin: top center;
+    }
+    
+    .batter-arm-front {
+      position: absolute;
+      bottom: 44px;
+      left: 5px;
+      width: 8px;
+      height: 18px;
+      background: linear-gradient(180deg, #48bb78 0%, #2f855a 100%);
+      border-radius: 3px;
+      transform: rotate(20deg);
+      transform-origin: top center;
+    }
+    
+    .batter-bat {
+      position: absolute;
+      bottom: 38px;
+      left: 38px;
+      width: 6px;
+      height: 50px;
+      background: linear-gradient(90deg, #6b4423 0%, #a0522d 40%, #8b4513 100%);
+      border-radius: 3px 3px 6px 6px;
+      transform-origin: bottom center;
+      transform: rotate(-50deg);
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .batter-bat::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: -2px;
+      width: 10px;
+      height: 12px;
+      background: linear-gradient(90deg, #333 0%, #555 50%, #333 100%);
+      border-radius: 2px;
+    }
+    
+    .batter-bat.ready {
+      animation: batterReady 0.8s ease-in-out infinite;
+    }
+    
+    .batter-bat.swinging {
+      animation: swingBat 0.12s ease-out forwards;
+    }
+    
+    .result-display {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 50;
+      display: none;
+    }
+    
+    .result-display.active {
+      display: block;
+      animation: slideIn 0.2s ease-out;
+    }
+    
+    .result-text {
+      font-size: 18px;
+      text-shadow: 3px 3px 0 #000, -1px -1px 0 #000;
+      margin-bottom: 5px;
+    }
+    
+    .result-detail {
+      font-size: 9px;
+      color: #aaa;
+      text-shadow: 1px 1px 0 #000;
+    }
+    
+    .commentary-box {
+      background: linear-gradient(180deg, #1a1a2e 0%, #0f0f23 100%);
+      border-top: 4px solid #2a2a4e;
+      padding: 12px 15px;
+      min-height: 90px;
+    }
+    
+    .commentary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .batter-info {
+      font-size: 10px;
+      color: #48bb78;
+    }
+    
+    .batter-stats {
+      font-size: 8px;
+      color: #666;
+    }
+    
+    .commentary-text {
+      font-size: 9px;
+      color: #ccc;
+      line-height: 1.6;
+      min-height: 40px;
+    }
+    
+    .tap-hint {
+      position: absolute;
+      bottom: 100px;
+      right: 15px;
+      font-size: 8px;
+      color: #444;
+      animation: blink 1.5s infinite;
+    }
+    
+    /* Opponent Inning Overlay */
+    .opp-inning-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.95);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 90;
+      padding: 20px;
+    }
+    
+    .opp-inning-overlay.active { display: flex; }
+    
+    .opp-inning-title {
+      font-size: 12px;
+      color: #e53e3e;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    
+    .opp-inning-score {
+      font-size: 28px;
+      color: #fff;
+      margin-bottom: 5px;
+    }
+    
+    .opp-inning-label {
+      font-size: 9px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    
+    .opp-play-log {
+      background: #1a1a2e;
+      border: 3px solid #2a2a4e;
+      padding: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 20px;
+    }
+    
+    .opp-play {
+      font-size: 8px;
+      color: #aaa;
+      padding: 6px 0;
+      border-bottom: 1px solid #2a2a4e;
+      line-height: 1.6;
+    }
+    
+    .opp-play:last-child { border-bottom: none; }
+    
+    .opp-play.hit { color: #48bb78; }
+    .opp-play.out { color: #888; }
+    .opp-play.score { color: #ffcc00; }
+    .opp-play.walk { color: #4299e1; }
+    
+    .opp-summary {
+      font-size: 10px;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    /* Game Over Overlay */
+    .game-over-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.95);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    
+    .game-over-overlay.active { display: flex; }
+    
+    .game-over-result {
+      font-size: 28px;
+      margin-bottom: 15px;
+      text-shadow: 3px 3px 0 #000;
+    }
+    
+    .game-over-result.win { color: #48bb78; }
+    .game-over-result.lose { color: #e53e3e; }
+    
+    .game-over-score {
+      font-size: 20px;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    
+    .game-over-summary {
+      font-size: 9px;
+      color: #888;
+      text-align: center;
+      line-height: 1.8;
+      margin-bottom: 30px;
+      max-width: 280px;
+    }
+    
+    /* Roster Screen */
+    .roster-screen { background: #0f0f23; }
+    
+    .roster-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px;
+      border-bottom: 4px solid #2a2a4e;
+      background: #1a1a2e;
+    }
+    
+    .roster-team-name {
+      font-size: 14px;
+      color: #48bb78;
+      cursor: pointer;
+    }
+    
+    .roster-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    
+    .player-card {
+      background: linear-gradient(180deg, #1a1a2e 0%, #151525 100%);
+      border: 3px solid #2a2a4e;
+      margin-bottom: 10px;
+      padding: 12px;
+    }
+    
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .player-number {
+      font-size: 10px;
+      color: #48bb78;
+      background: #0f0f23;
+      padding: 3px 8px;
+    }
+    
+    .player-name {
+      font-size: 11px;
+      color: #fff;
+    }
+    
+    .player-stats-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .stat-bar-container { flex: 1; }
+    
+    .stat-bar-label {
+      font-size: 8px;
+      color: #666;
+      margin-bottom: 3px;
+    }
+    
+    .stat-bar {
+      height: 10px;
+      background: #0f0f23;
+      border: 1px solid #333;
+    }
+    
+    .stat-bar-fill {
+      height: 100%;
+      transition: width 0.3s;
+    }
+    
+    .stat-bar-fill.contact { background: linear-gradient(90deg, #276749 0%, #48bb78 100%); }
+    .stat-bar-fill.power { background: linear-gradient(90deg, #9b2c2c 0%, #e53e3e 100%); }
+    .stat-bar-fill.speed { background: linear-gradient(90deg, #2b6cb0 0%, #4299e1 100%); }
+    
+    .stat-bar-value {
+      font-size: 8px;
+      margin-top: 2px;
+    }
+    
+    .player-game-stats {
+      display: flex;
+      gap: 15px;
+      font-size: 8px;
+      color: #666;
+      padding-top: 8px;
+      border-top: 1px solid #2a2a4e;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="gameContainer">
+    <div class="crt-overlay"></div>
+    
+    <!-- Title Screen -->
+    <div class="screen title-screen active" id="titleScreen">
+      <div class="title-baseball"></div>
+      <div class="title-logo">
+        <h1>RETRO</h1>
+        <h2>DIAMOND</h2>
+      </div>
+      <div class="title-subtitle">
+        A 9-INNING BASEBALL EXPERIENCE<br>
+        TIMING IS EVERYTHING
+      </div>
+      <div class="blink" style="font-size: 10px; color: #888; margin-bottom: 25px;">
+        TAP TO BEGIN
+      </div>
+      <button class="pixel-btn pixel-btn-primary" onclick="showScreen('menuScreen')">
+        START GAME
+      </button>
+      <div style="position: absolute; bottom: 20px; font-size: 7px; color: #333;">
+        v1.1 • RETRO SPORTS
+      </div>
+    </div>
+    
+    <!-- Menu Screen -->
+    <div class="screen menu-screen" id="menuScreen">
+      <div class="team-header">
+        <div class="team-name" id="menuTeamName">SLUGGERS</div>
+      </div>
+      
+      <div class="record-box">
+        <div class="record-title">📊 SEASON RECORD</div>
+        <div class="record-stats">
+          <div class="record-stat">
+            <div class="value" style="color: #48bb78;" id="menuWins">0</div>
+            <div class="label">WINS</div>
+          </div>
+          <div class="record-stat">
+            <div class="value" style="color: #e53e3e;" id="menuLosses">0</div>
+            <div class="label">LOSSES</div>
+          </div>
+          <div class="record-stat">
+            <div class="value" style="color: #fff;" id="menuWinPct">0%</div>
+            <div class="label">WIN %</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="menu-buttons">
+        <button class="pixel-btn pixel-btn-primary" onclick="startGame()">⚾ PLAY BALL</button>
+        <button class="pixel-btn" onclick="showScreen('howtoScreen')">📖 HOW TO PLAY</button>
+        <button class="pixel-btn" onclick="showScreen('rosterScreen')">👥 VIEW ROSTER</button>
+        <button class="pixel-btn pixel-btn-danger" onclick="newSeason()">🔄 NEW SEASON</button>
+      </div>
+      
+      <div class="menu-tip">
+        TIP: WATCH THE PITCH AND TAP WHEN<br>
+        THE BALL ENTERS THE GREEN ZONE
+      </div>
+    </div>
+    
+    <!-- How To Play Screen -->
+    <div class="screen howto-screen" id="howtoScreen">
+      <div class="howto-header">
+        <button class="pixel-btn" onclick="showScreen('menuScreen')" style="padding: 8px 12px; font-size: 10px;">←</button>
+        <div class="howto-title">HOW TO PLAY</div>
+      </div>
+      
+      <div class="howto-section">
+        <h3>⚾ THE BASICS</h3>
+        <p>You control the batting for your team. Watch each pitch carefully and tap the screen to swing when the ball is in the strike zone. Score more runs than your opponent over 9 innings to win!</p>
+      </div>
+      
+      <div class="howto-section">
+        <h3>🎯 TIMING YOUR SWING</h3>
+        <div class="howto-zone">
+          <div class="zone-demo">
+            <div class="sweet"></div>
+          </div>
+          <div class="zone-labels">
+            <span class="green">■ GREEN ZONE</span> = Perfect timing! Higher chance of solid contact.<br><br>
+            <span class="yellow">■ EDGES</span> = Okay timing. May result in weak contact.<br><br>
+            <span class="red">■ TOO EARLY/LATE</span> = Swing and miss!
+          </div>
+        </div>
+      </div>
+      
+      <div class="howto-section">
+        <h3>📊 PLAYER STATS</h3>
+        <p>
+          <span style="color: #48bb78;">CONTACT (CON)</span> - How often the batter makes contact. High = more hits.<br><br>
+          <span style="color: #e53e3e;">POWER (PWR)</span> - How far the ball goes. High = more extra-base hits & homers.<br><br>
+          <span style="color: #4299e1;">SPEED (SPD)</span> - Base running ability.
+        </p>
+      </div>
+      
+      <div class="howto-section">
+        <h3>📋 THE COUNT</h3>
+        <p>
+          <span style="color: #48bb78;">BALLS (B)</span> - Pitches outside the zone you don't swing at. 4 balls = walk.<br><br>
+          <span style="color: #ffcc00;">STRIKES (S)</span> - Swings & misses, or pitches in zone you don't swing at. 3 = strikeout.<br><br>
+          <span style="color: #e53e3e;">OUTS (O)</span> - 3 outs ends your half of the inning.
+        </p>
+      </div>
+      
+      <button class="pixel-btn pixel-btn-primary" onclick="showScreen('menuScreen')" style="width: 100%; margin-top: 10px;">
+        GOT IT!
+      </button>
+    </div>
+    
+    <!-- Roster Screen -->
+    <div class="screen roster-screen" id="rosterScreen">
+      <div class="roster-header">
+        <button class="pixel-btn" onclick="showScreen('menuScreen')" style="padding: 8px 12px; font-size: 10px;">←</button>
+        <div class="roster-team-name" id="rosterTeamName" onclick="editTeamName()">SLUGGERS ✏️</div>
+      </div>
+      <div class="roster-list" id="rosterList"></div>
+    </div>
+    
+    <!-- Game Screen -->
+    <div class="screen game-screen" id="gameScreen">
+      <div class="scoreboard">
+        <div class="score-team you">
+          <div class="name" id="gameYourName">SLUGGERS</div>
+          <div class="runs" id="gameYourScore">0</div>
+        </div>
+        <div class="score-inning">
+          <div class="inning-number" id="gameInning">1</div>
+          <div class="inning-half" id="gameHalf">▲ TOP</div>
+        </div>
+        <div class="score-team opp">
+          <div class="name" id="gameOppName">ROCKETS</div>
+          <div class="runs" id="gameOppScore">0</div>
+        </div>
+      </div>
+      
+      <div class="count-display">
+        <div class="count-item">
+          <span class="label">B</span>
+          <div class="count-dots" id="ballDots">
+            <div class="count-dot ball"></div>
+            <div class="count-dot ball"></div>
+            <div class="count-dot ball"></div>
+            <div class="count-dot ball"></div>
+          </div>
+        </div>
+        <div class="count-item">
+          <span class="label">S</span>
+          <div class="count-dots" id="strikeDots">
+            <div class="count-dot strike"></div>
+            <div class="count-dot strike"></div>
+            <div class="count-dot strike"></div>
+          </div>
+        </div>
+        <div class="count-item">
+          <span class="label">O</span>
+          <div class="count-dots" id="outDots">
+            <div class="count-dot out"></div>
+            <div class="count-dot out"></div>
+            <div class="count-dot out"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="field-area" id="fieldArea">
+        <div class="field-grass"></div>
+        <div class="field-dirt"></div>
+        
+        <div class="diamond">
+          <div class="diamond-outline"></div>
+          <div class="base home"></div>
+          <div class="base first" id="base1"></div>
+          <div class="base second" id="base2"></div>
+          <div class="base third" id="base3"></div>
+        </div>
+        
+        <div class="strike-zone">
+          <div class="sweet-spot"></div>
+        </div>
+        
+        <div class="pitch-ball" id="pitchBall"></div>
+        
+        <div class="batter-container">
+          <div class="batter-shadow"></div>
+          <div class="batter-legs"></div>
+          <div class="batter-torso">
+            <div class="batter-number" id="batterNumber">1</div>
+          </div>
+          <div class="batter-arm-back"></div>
+          <div class="batter-arm-front"></div>
+          <div class="batter-head"></div>
+          <div class="batter-helmet"></div>
+          <div class="batter-helmet-brim"></div>
+          <div class="batter-bat ready" id="batterBat"></div>
+        </div>
+        
+        <div class="result-display" id="resultDisplay">
+          <div class="result-text" id="resultText"></div>
+          <div class="result-detail" id="resultDetail"></div>
+        </div>
+        
+        <div class="tap-hint" id="tapHint">TAP TO SWING</div>
+      </div>
+      
+      <div class="commentary-box">
+        <div class="commentary-header">
+          <div class="batter-info" id="batterName">Now batting: Mike Johnson</div>
+          <div class="batter-stats" id="batterStats">CON: 85 PWR: 72</div>
+        </div>
+        <div class="commentary-text" id="commentaryText">
+          The pitcher winds up and delivers...
+        </div>
+      </div>
+      
+      <!-- Opponent Inning Overlay -->
+      <div class="opp-inning-overlay" id="oppInningOverlay">
+        <div class="opp-inning-title" id="oppInningTitle">ROCKETS AT BAT</div>
+        <div class="opp-inning-score" id="oppInningRuns">0</div>
+        <div class="opp-inning-label">RUNS THIS INNING</div>
+        <div class="opp-play-log" id="oppPlayLog"></div>
+        <div class="opp-summary" id="oppSummary">Score: 0 - 0</div>
+        <button class="pixel-btn pixel-btn-primary" onclick="dismissOppInning()">CONTINUE</button>
+      </div>
+      
+      <!-- Game Over Overlay -->
+      <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="game-over-result" id="gameOverResult">YOU WIN!</div>
+        <div class="game-over-score" id="gameOverScore">7 - 3</div>
+        <div class="game-over-summary" id="gameOverSummary">Great game!</div>
+        <button class="pixel-btn pixel-btn-primary" onclick="endGame()">CONTINUE</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // ============ GAME DATA ============
+    var TEAM_NAMES = ['Sluggers', 'Rockets', 'Thunder', 'Wolves', 'Hawks', 'Bears', 'Tigers', 'Flames', 'Storm', 'Vipers', 'Knights', 'Phantoms'];
+    var FIRST_NAMES = ['Mike', 'Jake', 'Tony', 'Rico', 'Dusty', 'Buck', 'Chet', 'Vinny', 'Bo', 'Ace', 'Chip', 'Duke'];
+    var LAST_NAMES = ['Johnson', 'Martinez', 'Williams', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson'];
+    var OPP_BATTERS = ['Smith', 'Garcia', 'Lee', 'Clark', 'Lewis', 'Hall', 'Young', 'King', 'Wright'];
+    
+    var COMMENTARY = {
+      waiting: ["The pitcher studies the signs...", "Here comes the pitch...", "The pitcher winds up...", "The crowd holds its breath...", "The pitcher takes the signal..."],
+      strike_swinging: ["Swings and misses! That pitch had movement.", "Strike! Couldn't catch up to that one.", "Whiff! The timing was off.", "Strike swinging! That pitch fooled him."],
+      strike_looking: ["Called strike! Right down the middle.", "Strike looking! Should've swung.", "The ump calls strike! Caught looking."],
+      ball: ["Ball. That one missed outside.", "Ball. Low and away.", "That's a ball. Pitcher missed his spot.", "Ball. Good eye not chasing."],
+      strikeout: ["STRUCK HIM OUT! Pitcher is dealing.", "STRIKEOUT! That's a punchout.", "HE'S OUTTA THERE! Strike three."],
+      walk: ["Take your base! That's a walk.", "Ball four! Free pass to first.", "A walk. Pitcher lost the zone."],
+      foul: ["Foul ball! Just missed it.", "Fouled off. Staying alive.", "Foul back. Good contact, just late."],
+      out: ["OUT! That one was caught.", "Fly out! Right at the defender.", "OUT! Routine play.", "Ground out! Good defense."],
+      single: ["BASE HIT! Into the outfield!", "SINGLE! Finds a hole!", "A clean single! Good hitting.", "SINGLE! Solid contact!"],
+      double: ["EXTRA BASES! Splits the gap!", "DOUBLE! Into second standing!", "DOUBLE! Ripped into the corner!", "A two-bagger! Great swing!"],
+      triple: ["TRIPLE! Motoring around the bases!", "ALL THE WAY TO THIRD!", "THREE BAGGER! Outfielder couldn't cut it off!", "TRIPLE! Blazing speed!"],
+      homerun: ["IT'S OUTTA HERE! HOME RUN!", "GONE! That ball is NOT coming back!", "DEEP FLY BALL... GOODBYE!", "HE CRUSHED IT! No-doubter!"],
+      rbi: ["run scores!", "runs come home!", "RBI!"]
+    };
+    
+    // ============ GAME STATE ============
+    var gameData = { teamName: 'Sluggers', team: [], season: { wins: 0, losses: 0, games: 0 } };
+    var game = null;
+    var pitchInterval = null;
+    var audioCtx = null;
+    
+    // ============ INIT ============
+    function init() {
+      loadGame();
+      updateMenuDisplay();
+    }
+    
+    function loadGame() {
+      try {
+        var saved = localStorage.getItem('retroDiamondV3');
+        if (saved) gameData = JSON.parse(saved);
+        else gameData.team = generateTeam();
+      } catch (e) { gameData.team = generateTeam(); }
+    }
+    
+    function saveGame() {
+      try { localStorage.setItem('retroDiamondV3', JSON.stringify(gameData)); } catch (e) {}
+    }
+    
+    function generateTeam() {
+      var team = [];
+      for (var i = 0; i < 9; i++) {
+        team.push({
+          id: i,
+          name: FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)] + ' ' + LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)],
+          contact: Math.floor(Math.random() * 35) + 65,
+          power: Math.floor(Math.random() * 35) + 65,
+          speed: Math.floor(Math.random() * 35) + 65,
+          avg: '.000', hr: 0, rbi: 0, hits: 0, atBats: 0
+        });
+      }
+      return team;
+    }
+    
+    // ============ AUDIO ============
+    function playSound(type) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (type === 'hit') {
+          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'homerun') {
+          osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'strike') {
+          osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'out') {
+          osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+        }
+      } catch (e) {}
+    }
+    
+    // ============ SCREENS ============
+    function showScreen(screenId) {
+      var screens = document.querySelectorAll('.screen');
+      for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+      document.getElementById(screenId).classList.add('active');
+      if (screenId === 'menuScreen') updateMenuDisplay();
+      if (screenId === 'rosterScreen') updateRosterDisplay();
+    }
+    
+    function updateMenuDisplay() {
+      document.getElementById('menuTeamName').textContent = gameData.teamName.toUpperCase();
+      document.getElementById('menuWins').textContent = gameData.season.wins;
+      document.getElementById('menuLosses').textContent = gameData.season.losses;
+      var winPct = gameData.season.games > 0 ? Math.round((gameData.season.wins / gameData.season.games) * 100) : 0;
+      document.getElementById('menuWinPct').textContent = winPct + '%';
+    }
+    
+    function updateRosterDisplay() {
+      document.getElementById('rosterTeamName').textContent = gameData.teamName.toUpperCase() + ' ✏️';
+      var list = document.getElementById('rosterList');
+      list.innerHTML = '';
+      for (var idx = 0; idx < gameData.team.length; idx++) {
+        var player = gameData.team[idx];
+        var card = document.createElement('div');
+        card.className = 'player-card';
+        card.innerHTML = '<div class="player-header"><div class="player-number">#' + (idx + 1) + '</div><div class="player-name">' + player.name + '</div></div>' +
+          '<div class="player-stats-row"><div class="stat-bar-container"><div class="stat-bar-label">CON</div><div class="stat-bar"><div class="stat-bar-fill contact" style="width:' + player.contact + '%"></div></div><div class="stat-bar-value" style="color:#48bb78;">' + player.contact + '</div></div>' +
+          '<div class="stat-bar-container"><div class="stat-bar-label">PWR</div><div class="stat-bar"><div class="stat-bar-fill power" style="width:' + player.power + '%"></div></div><div class="stat-bar-value" style="color:#e53e3e;">' + player.power + '</div></div>' +
+          '<div class="stat-bar-container"><div class="stat-bar-label">SPD</div><div class="stat-bar"><div class="stat-bar-fill speed" style="width:' + player.speed + '%"></div></div><div class="stat-bar-value" style="color:#4299e1;">' + player.speed + '</div></div></div>' +
+          '<div class="player-game-stats"><span>AVG: ' + player.avg + '</span><span>HR: ' + player.hr + '</span><span>RBI: ' + player.rbi + '</span></div>';
+        list.appendChild(card);
+      }
+    }
+    
+    function editTeamName() {
+      var newName = prompt('Enter team name (max 12 chars):', gameData.teamName);
+      if (newName && newName.trim()) {
+        gameData.teamName = newName.trim().slice(0, 12);
+        saveGame();
+        updateRosterDisplay();
+        updateMenuDisplay();
+      }
+    }
+    
+    function newSeason() {
+      if (confirm('Start a new season? This resets your record and generates a new team.')) {
+        gameData.team = generateTeam();
+        gameData.season = { wins: 0, losses: 0, games: 0 };
+        saveGame();
+        updateMenuDisplay();
+      }
+    }
+    
+    // ============ GAME LOGIC ============
+    function startGame() {
+      var oppName = TEAM_NAMES[Math.floor(Math.random() * TEAM_NAMES.length)];
+      game = {
+        inning: 1, half: 'top', outs: 0, strikes: 0, balls: 0,
+        runners: [false, false, false],
+        yourScore: 0, oppScore: 0, currentBatter: 0,
+        opponent: { name: oppName, skill: Math.floor(Math.random() * 25) + 55 },
+        isPitching: false, pitchY: 0, hasSwung: false, gameOver: false,
+        yourHits: 0, oppHits: 0
+      };
+      showScreen('gameScreen');
+      updateGameDisplay();
+      setCommentary(randomFrom(COMMENTARY.waiting));
+      document.getElementById('fieldArea').onclick = handleSwing;
+      document.getElementById('fieldArea').ontouchstart = function(e) { e.preventDefault(); handleSwing(); };
+      setTimeout(startPitch, 1200);
+    }
+    
+    function updateGameDisplay() {
+      document.getElementById('gameYourName').textContent = gameData.teamName.slice(0, 8).toUpperCase();
+      document.getElementById('gameOppName').textContent = game.opponent.name.slice(0, 8).toUpperCase();
+      document.getElementById('gameYourScore').textContent = game.yourScore;
+      document.getElementById('gameOppScore').textContent = game.oppScore;
+      document.getElementById('gameInning').textContent = game.inning;
+      document.getElementById('gameHalf').textContent = game.half === 'top' ? '▲ TOP' : '▼ BOT';
+      
+      var ballDots = document.querySelectorAll('#ballDots .count-dot');
+      var strikeDots = document.querySelectorAll('#strikeDots .count-dot');
+      var outDots = document.querySelectorAll('#outDots .count-dot');
+      for (var i = 0; i < ballDots.length; i++) ballDots[i].classList.toggle('active', i < game.balls);
+      for (var i = 0; i < strikeDots.length; i++) strikeDots[i].classList.toggle('active', i < game.strikes);
+      for (var i = 0; i < outDots.length; i++) outDots[i].classList.toggle('active', i < game.outs);
+      
+      document.getElementById('base1').classList.toggle('occupied', game.runners[0]);
+      document.getElementById('base2').classList.toggle('occupied', game.runners[1]);
+      document.getElementById('base3').classList.toggle('occupied', game.runners[2]);
+      
+      var batter = gameData.team[game.currentBatter];
+      document.getElementById('batterName').textContent = 'Now batting: ' + batter.name;
+      document.getElementById('batterStats').textContent = 'CON: ' + batter.contact + ' | PWR: ' + batter.power;
+      document.getElementById('batterNumber').textContent = game.currentBatter + 1;
+    }
+    
+    function setCommentary(text) { document.getElementById('commentaryText').textContent = text; }
+    
+    function showResult(text, detail, color) {
+      var display = document.getElementById('resultDisplay');
+      document.getElementById('resultText').textContent = text;
+      document.getElementById('resultText').style.color = color;
+      document.getElementById('resultDetail').textContent = detail || '';
+      display.classList.add('active');
+      setTimeout(function() { display.classList.remove('active'); }, 1500);
+    }
+    
+    function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    
+    function startPitch() {
+      if (game.gameOver) return;
+      
+      game.isPitching = true;
+      game.hasSwung = false;
+      game.pitchY = -30;
+      
+      var ball = document.getElementById('pitchBall');
+      var bat = document.getElementById('batterBat');
+      
+      // FIX: Set position BEFORE showing the ball
+      ball.style.bottom = '300px'; // Start way up high (near pitcher)
+      ball.style.animation = '';
+      ball.classList.add('active');
+      
+      bat.classList.remove('swinging');
+      bat.classList.add('ready');
+      
+      document.getElementById('tapHint').style.display = 'block';
+      setCommentary(randomFrom(COMMENTARY.waiting));
+      
+      var speed = 5 + Math.random() * 3;
+      
+      pitchInterval = setInterval(function() {
+        game.pitchY += speed;
+        // Ball travels from top (300px) down to plate area
+        ball.style.bottom = (300 - game.pitchY * 2) + 'px';
+        
+        if (game.pitchY > 140) {
+          clearInterval(pitchInterval);
+          ball.classList.remove('active');
+          
+          if (!game.hasSwung) {
+            var inZone = Math.random() < 0.6;
+            handleResult(inZone ? 'strike_looking' : 'ball');
+          }
+          game.isPitching = false;
+        }
+      }, 30);
+    }
+    
+    function handleSwing() {
+      if (!game.isPitching || game.hasSwung || game.gameOver) return;
+      
+      game.hasSwung = true;
+      clearInterval(pitchInterval);
+      
+      document.getElementById('tapHint').style.display = 'none';
+      var bat = document.getElementById('batterBat');
+      bat.classList.remove('ready');
+      bat.classList.add('swinging');
+      
+      var pitchBall = document.getElementById('pitchBall');
+      var timing = game.pitchY;
+      var batter = gameData.team[game.currentBatter];
+      var result;
+      
+      if (timing < 25 || timing > 115) {
+        result = 'strike_swinging';
+      } else if (timing >= 45 && timing <= 95) {
+        var contactChance = (batter.contact / 100) * 0.85;
+        if (Math.random() < contactChance) {
+          var powerRoll = Math.random() * 100;
+          var powerBonus = batter.power * 0.35;
+          if (powerRoll < powerBonus * 0.25) result = 'homerun';
+          else if (powerRoll < powerBonus * 0.4) result = 'triple';
+          else if (powerRoll < powerBonus * 0.65) result = 'double';
+          else if (powerRoll < 55 + batter.contact * 0.2) result = 'single';
+          else result = Math.random() < 0.35 ? 'foul' : 'out';
+        } else {
+          result = Math.random() < 0.4 ? 'foul' : 'out';
+        }
+      } else {
+        var contactChance = (batter.contact / 100) * 0.35;
+        if (Math.random() < contactChance) result = Math.random() < 0.6 ? 'single' : 'foul';
+        else result = Math.random() < 0.5 ? 'foul' : 'strike_swinging';
+      }
+      
+      if (['single', 'double', 'triple', 'homerun', 'out'].indexOf(result) >= 0) {
+        var endX = (Math.random() - 0.5) * 200;
+        var endY = result === 'homerun' ? -350 : -200 - Math.random() * 100;
+        pitchBall.style.setProperty('--end-x', endX + 'px');
+        pitchBall.style.setProperty('--end-y', endY + 'px');
+        pitchBall.style.animation = 'flyOut 0.6s ease-out forwards';
+        setTimeout(function() { pitchBall.classList.remove('active'); pitchBall.style.animation = ''; }, 600);
+      } else {
+        pitchBall.classList.remove('active');
+      }
+      
+      handleResult(result);
+    }
+    
+    function handleResult(result) {
+      var batter = gameData.team[game.currentBatter];
+      var commentary = '', resultColor = '#fff', resultText = '', resultDetail = '';
+      
+      switch (result) {
+        case 'strike_swinging':
+          playSound('strike');
+          game.strikes++;
+          resultText = 'STRIKE!'; resultColor = '#ffcc00';
+          commentary = randomFrom(COMMENTARY.strike_swinging);
+          if (game.strikes >= 3) {
+            game.outs++; game.strikes = 0; game.balls = 0;
+            batter.atBats++; updateBatterAvg(batter);
+            resultText = 'STRIKEOUT!'; resultDetail = game.outs + ' out' + (game.outs > 1 ? 's' : '');
+            resultColor = '#e53e3e'; commentary = randomFrom(COMMENTARY.strikeout);
+            playSound('out'); advanceBatter();
+          }
+          break;
+        case 'strike_looking':
+          playSound('strike');
+          game.strikes++;
+          resultText = 'STRIKE!'; resultDetail = 'Called'; resultColor = '#ffcc00';
+          commentary = randomFrom(COMMENTARY.strike_looking);
+          if (game.strikes >= 3) {
+            game.outs++; game.strikes = 0; game.balls = 0;
+            batter.atBats++; updateBatterAvg(batter);
+            resultText = 'STRIKEOUT!'; resultDetail = 'Looking';
+            resultColor = '#e53e3e'; commentary = randomFrom(COMMENTARY.strikeout);
+            playSound('out'); advanceBatter();
+          }
+          break;
+        case 'ball':
+          game.balls++;
+          resultText = 'BALL'; resultColor = '#48bb78';
+          commentary = randomFrom(COMMENTARY.ball);
+          if (game.balls >= 4) {
+            advanceRunners(1, true); game.strikes = 0; game.balls = 0;
+            resultText = 'WALK!'; resultDetail = 'Take your base';
+            commentary = randomFrom(COMMENTARY.walk); advanceBatter();
+          }
+          break;
+        case 'foul':
+          playSound('hit');
+          if (game.strikes < 2) game.strikes++;
+          resultText = 'FOUL'; resultColor = '#aaa';
+          commentary = randomFrom(COMMENTARY.foul);
+          break;
+        case 'out':
+          playSound('out');
+          game.outs++; batter.atBats++; updateBatterAvg(batter);
+          game.strikes = 0; game.balls = 0;
+          resultText = 'OUT!'; resultDetail = game.outs + ' out' + (game.outs > 1 ? 's' : '');
+          resultColor = '#e53e3e'; commentary = randomFrom(COMMENTARY.out); advanceBatter();
+          break;
+        case 'single':
+          playSound('hit');
+          batter.hits++; batter.atBats++; updateBatterAvg(batter); game.yourHits++;
+          var rbi = advanceRunners(1); batter.rbi += rbi;
+          game.strikes = 0; game.balls = 0;
+          resultText = 'SINGLE!'; resultDetail = rbi > 0 ? rbi + ' RBI' : '';
+          resultColor = '#48bb78'; commentary = randomFrom(COMMENTARY.single);
+          if (rbi > 0) commentary += ' ' + rbi + ' ' + randomFrom(COMMENTARY.rbi);
+          advanceBatter();
+          break;
+        case 'double':
+          playSound('hit');
+          batter.hits++; batter.atBats++; updateBatterAvg(batter); game.yourHits++;
+          var rbi = advanceRunners(2); batter.rbi += rbi;
+          game.strikes = 0; game.balls = 0;
+          resultText = 'DOUBLE!'; resultDetail = rbi > 0 ? rbi + ' RBI' : '';
+          resultColor = '#48bb78'; commentary = randomFrom(COMMENTARY.double);
+          if (rbi > 0) commentary += ' ' + rbi + ' ' + randomFrom(COMMENTARY.rbi);
+          advanceBatter();
+          break;
+        case 'triple':
+          playSound('hit');
+          batter.hits++; batter.atBats++; updateBatterAvg(batter); game.yourHits++;
+          var rbi = advanceRunners(3); batter.rbi += rbi;
+          game.strikes = 0; game.balls = 0;
+          resultText = 'TRIPLE!'; resultDetail = rbi > 0 ? rbi + ' RBI' : '';
+          resultColor = '#48bb78'; commentary = randomFrom(COMMENTARY.triple);
+          if (rbi > 0) commentary += ' ' + rbi + ' ' + randomFrom(COMMENTARY.rbi);
+          advanceBatter();
+          break;
+        case 'homerun':
+          playSound('homerun');
+          batter.hits++; batter.atBats++; batter.hr++; updateBatterAvg(batter); game.yourHits++;
+          var rbi = 1 + game.runners.filter(function(r) { return r; }).length;
+          batter.rbi += rbi; game.yourScore += rbi;
+          game.runners = [false, false, false];
+          game.strikes = 0; game.balls = 0;
+          resultText = 'HOME RUN!'; resultDetail = rbi + ' RBI'; resultColor = '#48bb78';
+          commentary = randomFrom(COMMENTARY.homerun) + ' ' + rbi + ' ' + randomFrom(COMMENTARY.rbi);
+          var scoreEl = document.getElementById('gameYourScore');
+          scoreEl.style.animation = 'scoreFlash 0.5s';
+          setTimeout(function() { scoreEl.style.animation = ''; }, 500);
+          advanceBatter();
+          break;
+      }
+      
+      showResult(resultText, resultDetail, resultColor);
+      setCommentary(commentary);
+      updateGameDisplay();
+      saveGame();
+      
+      if (game.outs >= 3) {
+        setTimeout(function() { switchSides(); }, 1800);
+      } else if (!game.gameOver) {
+        setTimeout(function() { startPitch(); }, 1800);
+      }
+    }
+    
+    function updateBatterAvg(batter) {
+      if (batter.atBats > 0) {
+        var avg = batter.hits / batter.atBats;
+        batter.avg = '.' + Math.round(avg * 1000).toString().padStart(3, '0');
+      }
+    }
+    
+    function advanceBatter() { game.currentBatter = (game.currentBatter + 1) % 9; }
+    
+    function advanceRunners(bases, isWalk) {
+      var runs = 0;
+      var runners = game.runners.slice();
+      for (var i = 2; i >= 0; i--) {
+        if (runners[i]) {
+          if (i + bases >= 3) { runs++; runners[i] = false; }
+          else { runners[i + bases] = true; runners[i] = false; }
+        }
+      }
+      if (bases <= 3) runners[bases - 1] = true;
+      game.runners = runners;
+      game.yourScore += runs;
+      return runs;
+    }
+    
+    function switchSides() {
+      game.outs = 0; game.strikes = 0; game.balls = 0;
+      game.runners = [false, false, false];
+      
+      if (game.half === 'top') {
+        game.half = 'bottom';
+        simulateOpponentInning();
+      } else {
+        game.half = 'top';
+        game.inning++;
+        if (game.inning > 9 && game.yourScore !== game.oppScore) {
+          endGameWithResult();
+          return;
+        }
+        updateGameDisplay();
+        setCommentary('Top of inning ' + game.inning + '. Your team is up!');
+        setTimeout(function() { startPitch(); }, 1500);
+      }
+    }
+    
+    function simulateOpponentInning() {
+      var oppSkill = game.opponent.skill;
+      var oppOuts = 0;
+      var oppRunners = [false, false, false];
+      var inningRuns = 0;
+      var inningHits = 0;
+      var plays = [];
+      var batterIdx = 0;
+      
+      while (oppOuts < 3) {
+        var batterName = OPP_BATTERS[batterIdx % OPP_BATTERS.length];
+        batterIdx++;
+        var roll = Math.random() * 100;
+        
+        if (roll < oppSkill * 0.35) {
+          // Hit
+          inningHits++;
+          var hitType = Math.random();
+          var bases = 1;
+          var hitName = 'single';
+          if (hitType < 0.06) { bases = 4; hitName = 'HOME RUN'; }
+          else if (hitType < 0.14) { bases = 3; hitName = 'triple'; }
+          else if (hitType < 0.32) { bases = 2; hitName = 'double'; }
+          
+          var runsOnPlay = 0;
+          if (bases === 4) {
+            runsOnPlay = 1 + oppRunners.filter(function(r) { return r; }).length;
+            oppRunners = [false, false, false];
+          } else {
+            for (var i = 2; i >= 0; i--) {
+              if (oppRunners[i]) {
+                if (i + bases >= 3) { runsOnPlay++; oppRunners[i] = false; }
+                else { oppRunners[i + bases] = true; oppRunners[i] = false; }
+              }
+            }
+            oppRunners[bases - 1] = true;
+          }
+          inningRuns += runsOnPlay;
+          
+          var playText = batterName + ' hits a ' + hitName + '!';
+          if (runsOnPlay > 0) playText += ' ' + runsOnPlay + ' run' + (runsOnPlay > 1 ? 's' : '') + ' score!';
+          plays.push({ text: playText, type: runsOnPlay > 0 ? 'score' : 'hit' });
+          
+        } else if (roll < oppSkill * 0.48) {
+          // Walk
+          var runsOnWalk = 0;
+          if (oppRunners[0] && oppRunners[1] && oppRunners[2]) {
+            runsOnWalk = 1;
+          }
+          if (oppRunners[0]) {
+            if (oppRunners[1]) { oppRunners[2] = true; }
+            oppRunners[1] = true;
+          }
+          oppRunners[0] = true;
+          inningRuns += runsOnWalk;
+          
+          var playText = batterName + ' walks.';
+          if (runsOnWalk > 0) playText += ' Run scores on bases loaded walk!';
+          plays.push({ text: playText, type: runsOnWalk > 0 ? 'score' : 'walk' });
+          
+        } else {
+          // Out
+          oppOuts++;
+          var outTypes = ['grounds out', 'flies out', 'lines out', 'pops out', 'strikes out'];
+          plays.push({ text: batterName + ' ' + outTypes[Math.floor(Math.random() * outTypes.length)] + '. ' + oppOuts + ' out.', type: 'out' });
+        }
+      }
+      
+      game.oppScore += inningRuns;
+      game.oppHits += inningHits;
+      
+      // Show opponent inning overlay
+      document.getElementById('oppInningTitle').textContent = game.opponent.name.toUpperCase() + ' AT BAT';
+      document.getElementById('oppInningRuns').textContent = inningRuns;
+      document.getElementById('oppInningRuns').style.color = inningRuns > 0 ? '#e53e3e' : '#888';
+      
+      var logEl = document.getElementById('oppPlayLog');
+      logEl.innerHTML = '';
+      for (var i = 0; i < plays.length; i++) {
+        var playDiv = document.createElement('div');
+        playDiv.className = 'opp-play ' + plays[i].type;
+        playDiv.textContent = plays[i].text;
+        logEl.appendChild(playDiv);
+      }
+      
+      document.getElementById('oppSummary').textContent = 'Score: ' + gameData.teamName + ' ' + game.yourScore + ' - ' + game.opponent.name + ' ' + game.oppScore;
+      document.getElementById('oppInningOverlay').classList.add('active');
+      updateGameDisplay();
+    }
+    
+    function dismissOppInning() {
+      document.getElementById('oppInningOverlay').classList.remove('active');
+      
+      if (game.inning >= 9 && game.yourScore !== game.oppScore) {
+        endGameWithResult();
+        return;
+      }
+      
+      game.half = 'top';
+      game.inning++;
+      updateGameDisplay();
+      setCommentary('Top of inning ' + game.inning + '. Your team is up to bat!');
+      setTimeout(function() { startPitch(); }, 1000);
+    }
+    
+    function endGameWithResult() {
+      game.gameOver = true;
+      var won = game.yourScore > game.oppScore;
+      document.getElementById('gameOverResult').textContent = won ? 'VICTORY!' : 'DEFEAT';
+      document.getElementById('gameOverResult').className = 'game-over-result ' + (won ? 'win' : 'lose');
+      document.getElementById('gameOverScore').textContent = game.yourScore + ' - ' + game.oppScore;
+      
+      var summary;
+      if (won) {
+        if (game.yourScore - game.oppScore >= 5) summary = 'Dominant! Your ' + gameData.teamName + ' crushed the ' + game.opponent.name + ' with ' + game.yourHits + ' hits!';
+        else summary = 'Great win! The ' + gameData.teamName + ' edge out the ' + game.opponent.name + ' in a competitive game.';
+      } else {
+        if (game.oppScore - game.yourScore >= 5) summary = 'Tough loss. The ' + game.opponent.name + ' were too strong today.';
+        else summary = 'Close one slips away. The ' + game.opponent.name + ' win but it could have gone either way.';
+      }
+      document.getElementById('gameOverSummary').textContent = summary;
+      document.getElementById('gameOverOverlay').classList.add('active');
+    }
+    
+    function endGame() {
+      var won = game.yourScore > game.oppScore;
+      gameData.season.games++;
+      if (won) gameData.season.wins++; else gameData.season.losses++;
+      saveGame();
+      document.getElementById('gameOverOverlay').classList.remove('active');
+      showScreen('menuScreen');
+      game = null;
+    }
+    
+    init();
+  </script>
+</body>
+</html>
